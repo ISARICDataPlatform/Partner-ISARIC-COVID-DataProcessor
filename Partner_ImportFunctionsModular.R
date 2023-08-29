@@ -106,7 +106,6 @@ colnames(mb) <- tolower(colnames(mb))
 
 import.microb.data <- function(file.name, dtplyr.step = FALSE){
   
-  #mb<-shared.data.import(file.name, dtplyr.step = TRUE)
   mb<-mb
   
   detection<- mb%>%
