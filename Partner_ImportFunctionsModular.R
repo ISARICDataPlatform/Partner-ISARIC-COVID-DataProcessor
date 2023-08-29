@@ -18,7 +18,7 @@ library(janitor)
 library(tools)
 
 ###set date pull
-date_pull<-as_date("2023-02-20") #Date of data pull
+date_pull<-as_date("2023-01-10") #Date of data pull
 
 
 #' Import demographic data
@@ -29,14 +29,14 @@ date_pull<-as_date("2023-02-20") #Date of data pull
 #' @export import.demographic.data
 #' 
 
-dm <- fread(file="Partner_DM_2023-02-20.csv", skip = 0)  #Import the DM data file. Rename with appropriate dataset
+dm <- fread(file="Partner_DM_2023-01-10.csv", skip = 0)  #Import the DM data file. Rename with appropriate dataset
 colnames(dm) <- tolower(colnames(dm))
 
 import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   wdi_dat <- WDI(indicator = c("NY.GDP.PCAP.KD", "SP.DYN.LE00.IN", "SP.DYN.IMRT.IN"),
                  start = 2020, end = 2020, extra = TRUE)%>%
     filter(region != "Aggregates")%>%
-    dplyr::select("Alpha_3"=iso3c,income,region)
+    select("Alpha_3"=iso3c,income,region)
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble%>%
     mutate(Name=case_when(!is.na(Common_name)~Common_name,
                           Name=="Lao People's Democratic Republic"~"Lao PDR",
@@ -55,7 +55,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            ageu=="DAYS" ~ 365.25,
                            TRUE~ NA_real_))%>%
     mutate(age2=age/age_d)%>%
-    dplyr::select(-(age))%>%
+    select(-(age))%>%
     rename(age=age2)%>%
     mutate(age=replace(age,age<0,NA))%>%
     mutate(ethnic = iconv(ethnic, to ="ASCII//TRANSLIT") %>% tolower()) %>%
@@ -71,15 +71,15 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_))%>%
     # mutate(date_admit=replace(date_admit,date_admit >date_pull,NA))%>%
-    dplyr::select(usubjid, studyid, date_admit, age, sex, ethnic, country)
+    select(usubjid, studyid, date_admit, age, sex, ethnic, country)
   site_id_country<-out%>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
-    dplyr::select(-country) %>%
+    select(-country) %>%
     rename(country = Name) %>%
     filter(!is.na(country))%>%
-    dplyr::distinct(usubjid, country, .keep_all =T)%>%
-    dplyr::select(usubjid, 'country_2'=country, income, region)
+    distinct(usubjid, country, .keep_all =T)%>%
+    select(usubjid, 'country_2'=country, income, region)
   out<-out%>%
     left_join(site_id_country)%>%
     mutate(country=country_2)%>%dplyr::select(-c(country_2))
@@ -101,7 +101,7 @@ save(imp_dm, file = "imp_dm.rda")
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.microb.data
 
-mb<-read.csv("Partner_MB_2022-01-05.csv") #Import the MB data file
+mb<-read.csv("Partner_MB_2023-01-10.csv") #Import the MB data file
 colnames(mb) <- tolower(colnames(mb))
 
 import.microb.data <- function(file.name, dtplyr.step = FALSE){
@@ -118,14 +118,14 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
                                 TRUE ~ NA_character_)) %>%
     mutate(mbtestcd = paste0("cov_det_",mbtestcd)%>% tolower%>%str_replace_all(" ", "_")) %>%
     arrange(desc(mbstresc))%>%
-    dplyr::distinct(usubjid, mbtestcd, .keep_all =T)%>% 
+    distinct(usubjid, mbtestcd, .keep_all =T)%>% 
     as.data.table() %>%
     pivot_wider(id_cols = usubjid, names_from = mbtestcd, values_from = mbstresc) %>%
     as.data.frame()
   
   identification<-mb%>%
     filter(mbtstdtl=="IDENTIFICATION")%>%
-    dplyr::distinct(usubjid, mbstresc, .keep_all =T)%>% 
+    distinct(usubjid, mbstresc, .keep_all =T)%>% 
     filter(mbstresc=="SEVERE ACUTE RESPIRATORY SYNDROME CORONAVIRUS 2"|
              mbstresc=="CORONAVIRIDAE")%>%
     mutate(mbstresc=replace(mbstresc,mbstresc=="SEVERE ACUTE RESPIRATORY SYNDROME CORONAVIRUS 2","SARSCOV2"))%>%
@@ -170,7 +170,7 @@ save(imp_mb, file = "imp_mb.rda")
 #' @return Formatted pregnancy data as a tibble or \code{dtplyr_step}
 #' @export process.pregnancy.data
 
-rp<- fread(file="Partner_RP_2023-02-20.csv", skip = 0) #Import the RP data file
+rp<- fread(file="Partner_RP_2023-01-10.csv", skip = 0) #Import the RP data file
 colnames(rp) <- tolower(colnames(rp))
 
 process.pregnancy.data <- function(file.name, dtplyr.step = FALSE){
@@ -180,7 +180,7 @@ process.pregnancy.data <- function(file.name, dtplyr.step = FALSE){
     mutate(comorbid_pregnancy = case_when(comorbid_pregnancy == "Y" ~ TRUE,
                                           comorbid_pregnancy == "N" ~ FALSE,
                                           TRUE ~ NA)) %>%
-    dplyr::select(usubjid,comorbid_pregnancy)
+    select(usubjid,comorbid_pregnancy)
   if(dtplyr.step){
     return(comorbid_pregnancy %>% lazy_dt(immutable = FALSE))
   } else {
@@ -200,7 +200,7 @@ save(imp_rp, file = "imp_rp.rda")
 #' @return Formatted vital sign (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.vital.sign.data
 
-vs<-read.csv("Partner_VS_2022-01-05.csv") #import the VS data file
+vs<-read.csv("Partner_VS_2023-01-10.csv") #import the VS data file
 colnames(vs) <- tolower(colnames(vs))
 
 process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
@@ -248,7 +248,7 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
                               TRUE~vsstresn))%>%
     filter(!is.na(vsstresn))%>%
     arrange(desc(vsdy))%>%
-    dplyr::distinct(usubjid,vstestcd, .keep_all =T)%>%
+    distinct(usubjid,vstestcd, .keep_all =T)%>%
     mutate(vso2src=case_when(vso2src==""&vstestcd=="OXYSAT"~'UNKNOWN',
                              TRUE~vso2src))%>%
     mutate(vso2src= str_replace_all(vso2src, " ", "_"))%>%
@@ -283,7 +283,7 @@ save(imp_vs, file = "imp_vs.rda")
 #' @return Formatted laboratory (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.laboratory.data
 
-lb<-read.csv("Partner_LB_2022-01-05.csv") #import the LB data file
+lb<-read.csv("Partner_LB_2023-01-10.csv") #import the LB data file
 colnames(lb) <- tolower(colnames(lb))
 
 process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
@@ -316,7 +316,7 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
     arrange(desc(lbdtc))%>%
-    dplyr::distinct(usubjid,lbtestcd, .keep_all =T)%>%
+    distinct(usubjid,lbtestcd, .keep_all =T)%>%
     mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
                              
                              lbtestcd=="LYM" & lborres>100 ~ lborres/1000,
@@ -381,12 +381,12 @@ save(imp_lb, file = "imp_lb.rda")
 #' @return Formatted outcome data (long format) as a tibble or \code{dtplyr_step}
 #' @export process.outcome.data
 
-ds<-read.csv("Partner_DS_2022-01-05.csv") #Import the DS data file
+ds<-read.csv("Partner_DS_2023-01-10.csv") #Import the DS data file
 colnames(ds) <- tolower(colnames(ds))
 
 process.outcome.data <- function(file.name, dtplyr.step = FALSE){
   outcome <- ds%>%
-    dplyr::select(usubjid, dsterm, dscdstdy, dsdecod, dsdy, dsstdy, dsmodify) %>%
+    select(usubjid, dsterm, dscdstdy, dsdecod, dsdy, dsstdy, dsmodify) %>%
     mutate(outcome=tolower(dsterm))%>%
     mutate(outcome=case_when(outcome=="palliative"~"transferred",
                              outcome=="transferred to another unit"~"ongoing care",
@@ -417,7 +417,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     mutate(count=1)%>% 
     mutate(n = sum(count)) %>%
     filter(n == 1)%>%
-    dplyr::select(-c(dsterm,dsmodify,n,count))
+    select(-c(dsterm,dsmodify,n,count))
   
   
   if(dtplyr.step){
@@ -439,7 +439,7 @@ save(imp_ds, file = "imp_ds.rda")
 #' @return Formatted symptom data as a tibble or \code{dtplyr_step}
 #' @export process.ICU.data
 
-ho<-read.csv("Partner_HO_2022-01-05.csv") #Import HO data file
+ho<-read.csv("Partner_HO_2023-01-10.csv") #Import HO data file
 colnames(ho) <- tolower (colnames(ho))
 
 process.ICU.data <- function(file.name, dtplyr.step = FALSE){
@@ -453,9 +453,9 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   icu <-icu%>%
     filter(hodecod=="INTENSIVE CARE UNIT")%>%
     arrange(desc(hody))%>%
-    dplyr::distinct(usubjid, .keep_all =T)%>%
+    distinct(usubjid, .keep_all =T)%>%
     rename(ever_icu=hooccur)%>%
-    dplyr::select(-c(hodecod))
+    select(-c(hodecod))
   
   if(dtplyr.step){
     return(icu)
@@ -474,7 +474,7 @@ save(imp_icu, file = "imp_icu.rda")
 #' @return Formatted comorbidity and symptom data as a tibble or \code{dtplyr_step}
 #' @export import.symptom.and.comorbidity.data
 
-sa <- fread(file="Partner_SA_v2_20220105.csv", skip = 0) #Import SA data file
+sa <- fread(file="Partner_SA_v2_20230110.csv", skip = 0) #Import SA data file
 sa<-as_tibble(sa)
 colnames(sa) <- tolower (colnames(sa))
 
@@ -696,7 +696,7 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = TRUE){
     mutate(saterm = str_replace_all(saterm, "/| / ", "_")) %>%
     mutate(saterm = str_replace_all(saterm, " ", "_")) %>%
     arrange(desc(saoccur))%>%
-    dplyr::distinct(usubjid,saterm, .keep_all =T)
+    distinct(usubjid,saterm, .keep_all =T)
   
   if(dtplyr.step){
     return(out)
@@ -818,6 +818,12 @@ save(imp_symptom, file = "imp_symptom.rda")
 #' @import dplyr tibble stringr
 #' @return Formatted treatment data (long format) as a tibble or \code{dtplyr_step}
 #' @export process.treatment.data
+
+#Import IN data file
+int <- fread(file=" Partner_IN_20230110", skip = 0) 
+int<-as_tibble(int)
+colnames(int) <- tolower (colnames(int))
+
 process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
   
   treatment<-int%>%
@@ -1068,8 +1074,7 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     mutate(treatment = glue("treat_{treatment}", treatment = treatment))%>%
     as.data.table()%>%
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)%>%
-    as.data.frame()%>%
-    full_join(date_in_last)
+    as.data.frame()
   
   ####calculating oxygen therapy overall
   treat_oxy <- imp_int%>%
@@ -1087,8 +1092,9 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid,"treat_oxygen_therapy"=inoccur)
   
-  ###adding duration for inasive_ventilation and non_invasive_ventilation
-  indur<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc,inendtc,indy)%>%
+  ###adding duration for invasive_ventilation and non_invasive_ventilation
+  indur <- imp_int%>%
+    select(usubjid,treatment, inoccur,indur,indy)%>%
     filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
     select(usubjid,treatment, inoccur,indur,indy)%>%
     filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
@@ -1097,7 +1103,7 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
                                TRUE~treatment))%>%
     mutate(indur_clean=as.numeric(gsub("[^0-9.]", "",indur)))%>%
     filter(!is.na(indur_clean)  | indur_clean!="")%>%
-    dplyr::distinct(usubjid,treatment, .keep_all =T)%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
     pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indur_clean)%>%
     as_tibble()
   
