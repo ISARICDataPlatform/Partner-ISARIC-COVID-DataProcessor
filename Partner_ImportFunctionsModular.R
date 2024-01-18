@@ -17,6 +17,8 @@ library(readr)
 library(janitor)
 library(tools)
 
+##PLEASE AMEND THE DATES OF FILES ACCORDING TO YOUR DATA EXTENSIONS
+
 ###set date pull
 date_pull<-as_date("2023-01-10") #Date of data pull
 
