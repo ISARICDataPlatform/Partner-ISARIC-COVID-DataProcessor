@@ -287,7 +287,7 @@ colnames(lb) <- tolower(colnames(lb))
 
 process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
   laboratory <- lb%>%
-    dplyr::select(usubjid, lbdy, lbtestcd, lbcat,lborres,lbdtc) %>%
+    dplyr::select(usubjid, lbdy, lbtestcd, lbcat,lborres) %>%
     mutate(lborres=replace(lborres,lborres=="",NA))%>%
     mutate(studyid=substr(usubjid,1, 7))%>%
     mutate(lbcat=case_when(lbdy==1 & (studyid=="CVCCPUK"| 
@@ -314,7 +314,6 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
              lbtestcd=="UREAN")%>%
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
-    arrange(desc(lbdtc))%>%
     distinct(usubjid,lbtestcd, .keep_all =T)%>%
     mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
                              
