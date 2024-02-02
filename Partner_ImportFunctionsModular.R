@@ -708,6 +708,25 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = TRUE){
 imp_sa<-import.symptom.and.comorbidity.data(sa, dtplyr.step = FALSE)
 save(imp_sa, file = "imp_sa.rda")
 
+#JOIN HO domain to find follow up patients
+#HO domain
+fup_ho<- ho%>% 
+  filter(hoterm=="Hospitalization with COVID-19 or Diagnosed with COVID19 during a hospital stay" & hooccur=="Y")%>%
+  mutate(hooccur = case_when(hooccur == "Y" ~ TRUE,
+                             hooccur == "N" ~ FALSE,
+                             TRUE ~ NA)) %>%
+  pivot_wider(id_cols = usubjid, names_from = hoterm, values_from = hooccur) %>%
+  rename(fup_hospitalised = "Hospitalization with COVID-19 or Diagnosed with COVID19 during a hospital stay") %>%
+  as.data.frame()
+
+#add variable for follow up south africa data #feb23
+imp_sa$fup_comorb <- NA
+imp_sa$fup_comorb = ifelse((imp_sa$studyid=="CVZXZMV" & imp_sa$satpt=="FOLLOW-UP"),"fup_southafrica","other") 
+table(imp_sa$fup_comorb)
+
+imp_sa<-  imp_sa%>%
+  full_join(fup_ho, by = c("usubjid"))
+save(imp_sa, file = "imp_sa.rda")
 
 #' Process data on comorbidities
 #' @param input Either the path of the symptoms/comorbidities data file (CDISC format) or output of \code{import.symptom.and.comorbidity.data}
